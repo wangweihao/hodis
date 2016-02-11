@@ -10,6 +10,7 @@
 #define _HODIS_MEM_POOL_H_
 
 #include <vector>
+#include <list>
 #include <algorithm>
 #include "hodis_slab.h"
 
@@ -23,11 +24,11 @@ class mem_pool{
         mem_pool(const mem_pool&) = delete;
 
         auto alloc_item(uint64_t size) -> std::shared_ptr<item>;
-        auto free_item()  -> void;
+        auto free_item(const std::shared_ptr<item>& item)  -> void;
         auto gc_crawler() -> void;
 
     private:
-        std::vector<std::unique_ptr<slab>> slab;
+        std::vector<std::list<std::unique_ptr<slab>>> slabv;
 
         std::vector<uint64_t> search_slab;
         /* memory pool attribute */

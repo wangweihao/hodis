@@ -21,12 +21,14 @@ slab(uint64_t _slab_size, uint64_t _slab_init, uint64_t _id):
     /* malloc slab */
     start = (char*)malloc(slab_size);
     if(start == nullptr){
-        std::cout << "malloc error" << std::endl;
+        fprintf(stderr, "Warning: Failed to allocate requested memory in"
+                                    " one large chunk.\nWill allocate in smaller chunks\n");
     }
     /* constructor object */
     for(int i = 0; i < perslab; ++i){
-        std::shared_ptr<item> tpi(new (start+(i*item_size)) item(start+(i*item_size)));
-        free_item.push_back(std::move(tpi));
+        std::shared_ptr<item> tpi(new (start+i*item_size) item(start+(i*item_size)));
+        tpi->set_slab_point(this);
+        freeitem.push_back(std::move(tpi));
     }
 }
 
@@ -37,36 +39,51 @@ slab::
 
 std::shared_ptr<item>
 slab::alloc_item(){
-    if(!free_item.empty()){
-        auto item = std::move(free_item.pop_back());
+    if(!freeitem.empty()){
+        auto item = *freeitem.end();
+        freeitem.pop_back();
         /* move in LRU list */
-        alloc_item.push_back(item);
+        allocitem.push_back(item);
+        return item;
     }else{
+        /* garbage collection recover expire time item */
         gc_crawler();
-        if(!free_item.empty()){
-            auto item = std::move(free_item.pop_back());
-            alloc_item.push_back(item);
+        if(!freeitem.empty()){
+            auto item = *freeitem.end();
+            freeitem.pop_back();
+            allocitem.push_back(item);
+            return item;
         }
     }
-    return item;
+    /* not useful item */
+    return nullptr;
 }
 
-void 
-slab::alloc_slab(){
-
+void
+slab::free_item(const std::shared_ptr<item> &fitem){
+    freeitem.push_back(fitem);
+    for(auto iter = allocitem.begin(); iter != allocitem.end(); ++iter){
+        if(*iter == fitem){
+            //iter = allocitem.erase(fitem);
+            break;
+        }
+    }
 }
+
+
 
 void 
 slab::gc_crawler(){
     time_t currtime;
     time(&currtime);
     /* obtain expire time item */
-    for(auto iter = alloc_item.begin(); iter != alloc_item.end(); ++iter){
+    for(auto iter = allocitem.begin(); iter != allocitem.end(); ++iter){
         if((*iter)->get_expiretime() <= currtime){
-            free_item.push_back(*iter);
-            iter = alloc_item.erase(iter);
+            freeitem.push_back(*iter);
+            iter = allocitem.erase(iter);
         }
     }
 }
+
 
 };  /* hodis */

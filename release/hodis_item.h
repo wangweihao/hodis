@@ -17,6 +17,8 @@
 #include <iostream>
 #include <time.h>
 
+#include "hodis_slab.h"
+
 #define ITEM_VALUE 32
 #define GET_VALUE_ADDRESS(start) ((start)+(ITEM_VALUE))
 
@@ -29,6 +31,8 @@ class item{
 
         void set_value();
         void set_expiretime(time_t time);
+        void set_slab_point(void *p);
+        void* get_slab_point();
         char* get_value();
         time_t get_expiretime();
 
@@ -39,8 +43,8 @@ class item{
         time_t timestamp;
         /* expire time */
         time_t expiretime;
-        /* index */
-        uint64_t index;
+        /* belong to slab */
+        void* pslab;
         /* item space key+date */
         void* value;
 };

@@ -16,6 +16,7 @@ item::item(char* start){
 
     value = GET_VALUE_ADDRESS(start);
     timestamp = time(&timep);
+    pslab = nullptr;
     expiretime = 0;
 }
 
@@ -30,17 +31,27 @@ item::set_value(){
 
 char*
 item::get_value(){
-
+    return nullptr;
 }
 
 void
-set_expiretime(time_t time){
+item::set_expiretime(time_t time){
     expiretime = time;
 }
 
 time_t
-get_expiretime(){
+item::get_expiretime(){
     return expiretime;
+}
+
+void
+item::set_slab_point(void *p){
+    pslab = p;
+}
+
+void*
+item::get_slab_point(){
+    return pslab;
 }
 
 }; /* hodis */
