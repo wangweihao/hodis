@@ -45,7 +45,7 @@ item::get_expiretime(){
 }
 
 void
-item::set_slab_point(void *p){
+item::set_slab_point(void* p){
     pslab = p;
 }
 

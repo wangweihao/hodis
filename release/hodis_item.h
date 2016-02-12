@@ -22,6 +22,8 @@
 #define ITEM_VALUE 32
 #define GET_VALUE_ADDRESS(start) ((start)+(ITEM_VALUE))
 
+class slab;
+
 namespace hodis{
 
 class item{
@@ -31,10 +33,10 @@ class item{
 
         void set_value();
         void set_expiretime(time_t time);
-        void set_slab_point(void *p);
-        void* get_slab_point();
-        char* get_value();
-        time_t get_expiretime();
+        void set_slab_point(void* p);
+        auto get_slab_point() -> void*;
+        auto get_value() -> char*;
+        auto get_expiretime() -> time_t;
 
     private:
         /* version number */

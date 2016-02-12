@@ -12,6 +12,8 @@
 /* c++ header */
 #include <memory>
 #include <list>
+#include <atomic>
+#include <mutex>
 #include "hodis_item.h"
 
 namespace hodis{
@@ -24,9 +26,12 @@ class slab{
         ~slab();
 
         slab(const slab&) = delete;
+        
         auto alloc_item() -> std::shared_ptr<item>;
         auto free_item(const std::shared_ptr<item> &fitem)  -> void;
         auto gc_crawler() -> void;
+        auto see() -> void;
+        auto get_item_size() -> uint64_t;
 
     private:
         /* one slab size */
@@ -36,9 +41,9 @@ class slab{
         /* items count per slab */
         uint64_t perslab;
         /* free item count */
-        uint64_t free_count;
+        uint_fast64_t free_count;
         /* alloc item count */
-        uint64_t alloc_count;
+        uint_fast64_t alloc_count;
         /* slab id */
         uint64_t id;
         /* this slab free item */
@@ -48,6 +53,8 @@ class slab{
         std::list<std::shared_ptr<item>> allocitem;
         /* slab start */
         char *start;
+        /* mutex */
+        std::mutex mutex;
 
 };
 

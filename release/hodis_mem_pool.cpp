@@ -19,18 +19,27 @@ mem_pool(uint64_t _slab_size, uint64_t _slab_num, uint64_t _slab_init, float _sl
     uint64_t all_alloc_mem = 0;
     for(int i = 0; i < slab_num; ++i){
         item_size = (uint64_t)slab_init * pow(slab_incre, i);
+        /* 
+         * acculate allocator memory size 
+         * */
         all_alloc_mem += item_size;
         if(all_alloc_mem > memory_size){
             fprintf(stderr, "error:Beyond the memory limit\n");
             exit(1);
         } 
         std::unique_ptr<slab> one_slab = std::make_unique<slab>(slab_size, item_size, i);
-        /* one size slab list */
+        /* 
+         * a speci size slab list 
+         * */
         std::list<std::unique_ptr<slab>> slab_list;
-        /* slab adjacent table */
+        /* 
+         * slab adjacent table 
+         * */
         slab_list.push_back(std::move(one_slab));
         slabv.push_back(std::move(slab_list));    
-        /* search_slab used appropriate slab */
+        /* 
+         * search_slab used appropriate slab
+         * */
         search_slab.push_back(item_size);
     }
 }
@@ -44,10 +53,14 @@ mem_pool::
 
 std::shared_ptr<item>
 mem_pool::alloc_item(uint64_t size){
-    /* search appropriate item size in slab */
+    /* 
+     * search appropriate item size in slab 
+     * */
     auto end = std::lower_bound(search_slab.begin(), search_slab.end(), size);
     if(end == search_slab.end()){
-        /* need memory is big, use malloc */
+        /* 
+         * need memory is big, use malloc 
+         * */
         char *p = (char*)malloc(size);
         if(p == nullptr){
             fprintf(stderr, "Warning: Failed to allocate requested memory in"
@@ -58,16 +71,23 @@ mem_pool::alloc_item(uint64_t size){
         return sp;
     }else{
         auto index = end - search_slab.begin();
-        /* this size slab list to search item */
+        /* 
+         * this size slab list to search item 
+         * */
         for(auto &slabs : slabv[index]){
             auto one_item = slabs->alloc_item();
             if(one_item != nullptr){
                    return one_item;
             }
         }
-        /* slab list not item, allocator a new slab */
-        std::unique_ptr<slab> one_slab = std::make_unique<slab>(slab_size, slab_size/slab_num, index);
-        /* new slab allocate one item */
+        //std::cout << "alloc new slab" << std::endl;
+        /* 
+         * slab list not item, allocator a new slab 
+         * */
+        std::unique_ptr<slab> one_slab = std::make_unique<slab>(slab_size, *end, index);
+        /* 
+         * new slab allocate one item 
+         * */
         auto ret_item = one_slab->alloc_item();
         slabv[index].push_back(std::move(one_slab));
         return ret_item;
@@ -76,17 +96,21 @@ mem_pool::alloc_item(uint64_t size){
 
 void
 mem_pool::free_item(const std::shared_ptr<item>& item){
-//    auto slab = (slab*)item->get_slab_point();
-//    if(slab == nullptr){
-//        free(item->get());
-//    }else{
-//        slab->free_item(item);
-//    }
+    hodis::slab* const item_slab = reinterpret_cast<slab* const>(item->get_slab_point());
+    item_slab->see();
+    if(item_slab == nullptr){
+        free(item.get());
+    }else{
+        item_slab->free_item(item);
+    }
+    //item_slab->see();
     return;
 }
 
 
-/* memory pool garbage collection */
+/* 
+ * memory pool garbage collection 
+ * */
 void
 mem_pool::gc_crawler(){
     for(auto &slab_list : slabv){
