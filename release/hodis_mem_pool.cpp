@@ -12,12 +12,18 @@
 namespace hodis{
 
 mem_pool::
-mem_pool(uint64_t _slab_size, uint64_t _slab_num, uint64_t _slab_init, float _slab_incre):
-    slab_size(_slab_size), slab_num(_slab_num), slab_init(_slab_init), slab_incre(_slab_incre)
+mem_pool(uint64_t _slab_size, uint64_t _slab_num, uint64_t _slab_init, float _slab_incre, uint64_t _memory_size):
+    slab_size(_slab_size), slab_num(_slab_num), slab_init(_slab_init), slab_incre(_slab_incre), memory_size(_memory_size)
 {
     uint64_t item_size = slab_init;
+    uint64_t all_alloc_mem = 0;
     for(int i = 0; i < slab_num; ++i){
         item_size = (uint64_t)slab_init * pow(slab_incre, i);
+        all_alloc_mem += item_size;
+        if(all_alloc_mem > memory_size){
+            fprintf(stderr, "error:Beyond the memory limit\n");
+            exit(1);
+        } 
         std::unique_ptr<slab> one_slab = std::make_unique<slab>(slab_size, item_size, i);
         /* one size slab list */
         std::list<std::unique_ptr<slab>> slab_list;

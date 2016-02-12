@@ -24,9 +24,12 @@ slab(uint64_t _slab_size, uint64_t _slab_init, uint64_t _id):
         fprintf(stderr, "Warning: Failed to allocate requested memory in"
                                     " one large chunk.\nWill allocate in smaller chunks\n");
     }
+    /* item deleter */
+    auto deleter = [](item *p){};
     /* constructor object */
     for(int i = 0; i < perslab; ++i){
-        std::shared_ptr<item> tpi(new (start+i*item_size) item(start+(i*item_size)));
+        item* iptr = reinterpret_cast<item*>(start+i*item_size);
+        std::shared_ptr<item> tpi(new (iptr) item(start+(i*item_size)), deleter);
         tpi->set_slab_point(this);
         freeitem.push_back(std::move(tpi));
     }
@@ -40,7 +43,7 @@ slab::
 std::shared_ptr<item>
 slab::alloc_item(){
     if(!freeitem.empty()){
-        auto item = *freeitem.end();
+        auto item = *(--freeitem.end());
         freeitem.pop_back();
         /* move in LRU list */
         allocitem.push_back(item);
@@ -49,7 +52,7 @@ slab::alloc_item(){
         /* garbage collection recover expire time item */
         gc_crawler();
         if(!freeitem.empty()){
-            auto item = *freeitem.end();
+            auto item = *(--freeitem.end());
             freeitem.pop_back();
             allocitem.push_back(item);
             return item;
