@@ -8,8 +8,25 @@
 
 #include <iostream>
 
+class B;
+class A;
+
+class B{
+    public:
+        B(int _i){
+            i = _i;
+        }
+
+    private:
+        int i;
+};
+
 class A{
-    A*A;
+    public:
+        A():b(10) {}
+
+    private:
+        B b;
 };
 
 int main(){

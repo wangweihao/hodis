@@ -24,6 +24,7 @@ class mem_pool{
         ~mem_pool();
 
         mem_pool(const mem_pool&) = delete;
+        mem_pool& operator=(const mem_pool&) = delete;
 
         /* alloc and free item */
         auto alloc_item(uint64_t size) -> std::shared_ptr<item>;
