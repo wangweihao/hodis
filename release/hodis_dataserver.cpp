@@ -24,6 +24,8 @@ dataserver(std::ifstream &in){
             strtof(para.at("slab_incre").c_str(), nullptr),
             strtoull(para.at("memory_size").c_str(), nullptr, 10)*1024*1024*1024
             );
+    /* init main thread */
+    event_init();
 
 }
 
@@ -37,7 +39,22 @@ dataserver::
 void
 dataserver::
 run(){
+    while(1){
+        int nfds = epoll_wait(epoll_fd, events, Max_conn, -1);
+        if(nfds == -1){
+            fprintf(stderr, "epoll_wait() error");
+            continue;
+        }
 
+        for(int i = 0; i < nfds; ++i){
+            if(events[i].data.fd == listen_fd){
+                std::cout << "加入连接" << std::endl;
+                accept_connect();
+            }else{
+                std::cout << "特殊情况" << std::endl;
+            }
+        }
+    }
 }
 
 
@@ -113,6 +130,40 @@ analyse_parameter(std::ifstream &in, std::map<std::string, std::string> &para){
     ip = para["dataserver_ip"];
     port = atoi(para["dataserver_port"].c_str());
     thread_num = atoi(para["work_thread_num"].c_str());
+}
+
+int
+dataserver::
+accept_connect(){
+    struct sockaddr_in client_addr;
+    socklen_t addrlen = sizeof(struct sockaddr_in);
+    int connect_fd = 0;
+
+    bzero(&client_addr, sizeof(client_addr));
+
+    if((connect_fd = accept4(listen_fd, (struct sockaddr*)&client_addr, &addrlen, SOCK_NONBLOCK)) == -1){
+        fprintf(stderr, "accept4() error");
+        return -1;
+    }else{
+        return connect_fd;
+    }
+
+}
+
+bool
+dataserver::
+register_worker(int fd){
+    /* obtain current worker thread */
+    auto index = counter.load();
+    ++counter;
+
+
+}
+
+bool
+dataserver::
+worker_init(){
+
 }
 
 };  /* hodis */

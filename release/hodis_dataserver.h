@@ -50,15 +50,23 @@ class dataserver{
     private:
         int setnonblocking(int fd);
         bool event_init();
+        bool worker_init();
         bool analyse_parameter(std::ifstream &in, std::map<std::string, std::string> &para);
+        bool register_worker(int fd);
+        int accept_connect();
 
     private:
         /* worker thread num */
         int thread_num;
         /* worker thread */
-        std::vector<std::unique_ptr<std::thread>> thread_group;
+        std::vector<std::unique_ptr<std::thread>> work_thread_group;
         /* distrubute event to worker thread by counter */
         std::atomic<uint_fast64_t> counter;
+
+        /* log thread 
+         * redo log
+         * undo log*/
+        std::unique_ptr<std::thread> log_thread;
 
         /* mem_pool */
         std::unique_ptr<hodis::mem_pool> pool;

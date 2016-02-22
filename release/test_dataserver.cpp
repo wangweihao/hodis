@@ -15,4 +15,6 @@ int main(){
 
     hodis::dataserver dataserver(in);
     dataserver.run();
+
+    return 0;
 }
