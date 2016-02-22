@@ -24,7 +24,7 @@ mem_pool(uint64_t _slab_size, uint64_t _slab_num, uint64_t _slab_init, float _sl
          * */
         all_alloc_mem += item_size;
         if(all_alloc_mem > memory_size){
-            fprintf(stderr, "error:Beyond the memory limit\n");
+            fprintf(stderr, "Error: Beyond the memory limit\n");
             exit(1);
         } 
         std::unique_ptr<slab> one_slab = std::make_unique<slab>(slab_size, item_size, i);

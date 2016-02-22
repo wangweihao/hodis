@@ -20,24 +20,41 @@
 #include <string.h>
 
 /* c++ header */
+#include <cstdio>
 #include <iostream>
 #include <vector>
 #include <memory>
 #include <string>
+#include <thread>
+#include <fstream>
+#include <sstream>
+#include <map>
 
 /* memory pool */
 #include "hodis_mem_pool.h"
 
+#define Max_conn 10000
+#define BackLog  1024
+
+namespace hodis{
+
 class dataserver{
     public:
+        dataserver() = delete;
         dataserver(std::ifstream &in);
         ~dataserver();
+
 
         void run();
 
     private:
+        int setnonblocking(int fd);
+        bool event_init();
+        bool analyse_parameter(std::ifstream &in, std::map<std::string, std::string> &para);
 
     private:
+        /* worker thread num */
+        int thread_num;
         /* worker thread */
         std::vector<std::unique_ptr<std::thread>> thread_group;
         /* distrubute event to worker thread by counter */
@@ -59,5 +76,7 @@ class dataserver{
         struct epoll_event ev;
 
 };
+
+};  /* hodis */
 
 #endif
