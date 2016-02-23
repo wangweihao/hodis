@@ -32,6 +32,8 @@
 
 /* memory pool */
 #include "hodis_mem_pool.h"
+/* worker thread */
+#include "hodis_workthread.h"
 
 #define Max_conn 10000
 #define BackLog  1024
@@ -59,7 +61,9 @@ class dataserver{
         /* worker thread num */
         int thread_num;
         /* worker thread */
-        std::vector<std::unique_ptr<std::thread>> work_thread_group;
+        std::vector<std::unique_ptr<hodis::workthread>> work_thread_group;
+        /* write pipe fd */
+        std::vector<int> pipe_fds;
         /* distrubute event to worker thread by counter */
         std::atomic<uint_fast64_t> counter;
 

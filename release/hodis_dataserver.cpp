@@ -26,6 +26,8 @@ dataserver(std::ifstream &in){
             );
     /* init main thread */
     event_init();
+    /* init worker thread */
+    worker_init();
 
 }
 
@@ -50,6 +52,7 @@ run(){
             if(events[i].data.fd == listen_fd){
                 std::cout << "加入连接" << std::endl;
                 accept_connect();
+                write(pipe_fds[0], "hello world", 12);
             }else{
                 std::cout << "特殊情况" << std::endl;
             }
@@ -160,10 +163,24 @@ register_worker(int fd){
 
 }
 
+
+/*
+ * Create work thread
+ * Establish the pipeline with the main thread
+ * */
 bool
 dataserver::
 worker_init(){
-
+    for(int i = 0; i < thread_num; ++i){
+        int pipe_fd[2];
+        if(pipe(pipe_fd) < 0){
+            fprintf(stderr, "pipe() error");
+            exit(1);
+        }
+        pipe_fds.push_back(pipe_fd[1]);
+        auto one_worker = std::make_unique<hodis::workthread>(pipe_fd[0]);
+        work_thread_group.push_back(std::move(one_worker));
+    }
 }
 
 };  /* hodis */
