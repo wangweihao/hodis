@@ -68,9 +68,9 @@ run(){
                     fprintf(stderr, "accept_connect() error\n");
                     continue;
                 }else{
+                    /* accept a new connection, register worker thread */
                     register_worker(con_fd);
                 }
-                //write(pipe_fds[0], "hello world", 12);
             }else{
                 std::cout << "特殊情况" << std::endl;
             }
@@ -181,10 +181,20 @@ bool
 dataserver::
 register_worker(int fd){
     /* obtain current worker thread */
-    auto index = counter.load();
+    Item item;
+    auto index = counter.load() % thread_num;
+    unsigned int size = sizeof(uint64_t);
+    
     ++counter;
-
-
+    item.fd = fd;
+    (*worker_item_aq)[index]->push_back(item);
+    ++event[index];
+    if(size != write(eventfds[index], &event[index], size)){
+        fprintf(stderr, "write() error\n");
+        return false;
+    }
+    
+    return true;
 }
 
 
@@ -196,13 +206,15 @@ bool
 dataserver::
 worker_init(){
     for(int i = 0; i < thread_num; ++i){
-        int pipe_fd[2];
-        if(pipe(pipe_fd) < 0){
-            fprintf(stderr, "pipe() error");
+        int fd;
+        uint64_t ev = 0;
+        if((fd = eventfd(0, 0)) == -1){
+            fprintf(stderr, "eventfd() error\n");
             exit(1);
         }
-        pipe_fds.push_back(pipe_fd[1]);
-        auto one_worker = std::make_unique<hodis::workthread>(pipe_fd[0], i, (*worker_item_aq)[i]);
+        eventfds.push_back(fd);
+        event.push_back(ev);
+        auto one_worker = std::make_unique<hodis::workthread>(fd, i, (*worker_item_aq)[i]);
         work_thread_group.push_back(std::move(one_worker));
     }
 }

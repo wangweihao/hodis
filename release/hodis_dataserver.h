@@ -18,6 +18,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/eventfd.h>
 
 /* c++ header */
 #include <cstdio>
@@ -46,7 +47,8 @@ class dataserver{
         using ParaMap = std::map<std::string, std::string>;
         using WorkerThreadGroup = std::vector<std::unique_ptr<hodis::workthread>>;
         using WorkerItemAQ = std::unique_ptr<std::vector<std::shared_ptr<std::list<Item>>>>;
-        using WorkerPipe = std::vector<int>;
+        using WorkerEvent = std::vector<uint64_t>;
+        using WorkerEventFd = std::vector<int>;
 
         dataserver() = delete;
 
@@ -70,8 +72,9 @@ class dataserver{
         int thread_num;
         /* worker thread */
         WorkerThreadGroup work_thread_group;
-        /* worker thread write pipe fd */
-        WorkerPipe pipe_fds;
+        /* worker thread write event fd */
+        WorkerEvent event;
+        WorkerEventFd eventfds;
         /* worker thread accept connection item queue */
         WorkerItemAQ worker_item_aq;
         /* distrubute event to worker thread by counter */

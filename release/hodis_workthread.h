@@ -43,8 +43,6 @@ class workthread{
     
     private:
         bool worker_init();
-        bool worker_assist_init();
-        void assist_run();
 
     private:
         /* 
@@ -52,11 +50,6 @@ class workthread{
          * responsible for handling the event 
          * */
         std::unique_ptr<std::thread> worker;
-        /* 
-         * receive new client from the main thread,
-         * register worker event loop 
-         * */
-        std::unique_ptr<std::thread> worker_assist;
         /* item accept queue */
         ItemQueue item_aq;
 
