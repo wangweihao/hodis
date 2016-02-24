@@ -29,6 +29,7 @@
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <list>
 
 /* memory pool */
 #include "hodis_mem_pool.h"
@@ -42,10 +43,15 @@ namespace hodis{
 
 class dataserver{
     public:
+        using ParaMap = std::map<std::string, std::string>;
+        using WorkerThreadGroup = std::vector<std::unique_ptr<hodis::workthread>>;
+        using WorkerItemAQ = std::unique_ptr<std::vector<std::shared_ptr<std::list<Item>>>>;
+        using WorkerPipe = std::vector<int>;
+
         dataserver() = delete;
+
         dataserver(std::ifstream &in);
         ~dataserver();
-
 
         void run();
 
@@ -53,17 +59,21 @@ class dataserver{
         int setnonblocking(int fd);
         bool event_init();
         bool worker_init();
-        bool analyse_parameter(std::ifstream &in, std::map<std::string, std::string> &para);
+        bool master_init(ParaMap &para);
+        bool analyse_parameter(std::ifstream &in, ParaMap &para);
         bool register_worker(int fd);
         int accept_connect();
+
 
     private:
         /* worker thread num */
         int thread_num;
         /* worker thread */
-        std::vector<std::unique_ptr<hodis::workthread>> work_thread_group;
-        /* write pipe fd */
-        std::vector<int> pipe_fds;
+        WorkerThreadGroup work_thread_group;
+        /* worker thread write pipe fd */
+        WorkerPipe pipe_fds;
+        /* worker thread accept connection item queue */
+        WorkerItemAQ worker_item_aq;
         /* distrubute event to worker thread by counter */
         std::atomic<uint_fast64_t> counter;
 
@@ -75,7 +85,7 @@ class dataserver{
         /* mem_pool */
         std::unique_ptr<hodis::mem_pool> pool;
 
-        /* port and is */
+        /* port and ip */
         std::string ip;
         int port;
 

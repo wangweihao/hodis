@@ -16,17 +16,11 @@ dataserver(std::ifstream &in){
     std::map<std::string, std::string> para;
     
     analyse_parameter(in, para);
-    /* constructor memory pool */
-    pool = std::make_unique<hodis::mem_pool>(
-            strtoull(para.at("slab_size").c_str(), nullptr, 10)*1024, 
-            strtoull(para.at("slab_num").c_str(), nullptr, 10),
-            strtoull(para.at("slab_init").c_str(), nullptr, 10),
-            strtof(para.at("slab_incre").c_str(), nullptr),
-            strtoull(para.at("memory_size").c_str(), nullptr, 10)*1024*1024*1024
-            );
-    /* init main thread */
+    /* master thread init */
+    master_init(para);
+    /* event_init */
     event_init();
-    /* init worker thread */
+    /* worker thread init */
     worker_init();
 
 }
@@ -37,6 +31,24 @@ dataserver::
 
 }
 
+
+bool
+dataserver::
+master_init(std::map<std::string, std::string> &para){
+    /* constructor memory pool */
+    pool = std::make_unique<hodis::mem_pool>(
+            strtoull(para.at("slab_size").c_str(), nullptr, 10)*1024, 
+            strtoull(para.at("slab_num").c_str(), nullptr, 10),
+            strtoull(para.at("slab_init").c_str(), nullptr, 10),
+            strtof(para.at("slab_incre").c_str(), nullptr),
+            strtoull(para.at("memory_size").c_str(), nullptr, 10)*1024*1024*1024
+            );
+    worker_item_aq = std::make_unique<std::vector<std::shared_ptr<std::list<Item>>>>(thread_num);
+    /* worker thread accept connection item queue init */
+    for(int i = 0; i < thread_num; ++i){
+        (*worker_item_aq)[i] = std::make_shared<std::list<Item>>();
+    }
+}
 
 void
 dataserver::
@@ -51,8 +63,14 @@ run(){
         for(int i = 0; i < nfds; ++i){
             if(events[i].data.fd == listen_fd){
                 std::cout << "加入连接" << std::endl;
-                accept_connect();
-                write(pipe_fds[0], "hello world", 12);
+                int con_fd = accept_connect();
+                if(con_fd == -1){
+                    fprintf(stderr, "accept_connect() error\n");
+                    continue;
+                }else{
+                    register_worker(con_fd);
+                }
+                //write(pipe_fds[0], "hello world", 12);
             }else{
                 std::cout << "特殊情况" << std::endl;
             }
@@ -64,6 +82,7 @@ run(){
 bool 
 dataserver::
 event_init(){
+    int reuse_addr = 1;
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_port = htons(port);
     server_addr.sin_family = AF_INET;
@@ -71,6 +90,11 @@ event_init(){
 
     if((listen_fd = socket(PF_INET, SOCK_STREAM, 0)) < 0){
         fprintf(stderr, "socket() error!");
+        exit(1);
+    }
+
+    if(setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, (void*)&reuse_addr, sizeof(int)) != 0){
+        fprintf(stderr, "setsockopt() error");
         exit(1);
     }
 
@@ -178,7 +202,7 @@ worker_init(){
             exit(1);
         }
         pipe_fds.push_back(pipe_fd[1]);
-        auto one_worker = std::make_unique<hodis::workthread>(pipe_fd[0]);
+        auto one_worker = std::make_unique<hodis::workthread>(pipe_fd[0], i, (*worker_item_aq)[i]);
         work_thread_group.push_back(std::move(one_worker));
     }
 }

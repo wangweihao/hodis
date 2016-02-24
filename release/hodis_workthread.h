@@ -13,20 +13,38 @@
 /* C header */
 #include <strings.h>
 #include <unistd.h>
+#include <sys/epoll.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 /* C++ header */
 #include <thread>
 #include <memory>
 #include <iostream>
+#include <list>
+
+#define Max_conn 10000
+
+typedef struct Item{
+    int fd;
+}Item;
+
 
 namespace hodis{
 
 class workthread{
     public:
-        workthread(int read_fd);
+        using ItemQueue = std::shared_ptr<std::list<Item>>;
+
+        workthread(int read_fd, int _id, ItemQueue _item_aq);
         ~workthread();
 
         void run();
+    
+    private:
+        bool worker_init();
+        bool worker_assist_init();
+        void assist_run();
 
     private:
         /* 
@@ -34,8 +52,21 @@ class workthread{
          * responsible for handling the event 
          * */
         std::unique_ptr<std::thread> worker;
-        
+        /* 
+         * receive new client from the main thread,
+         * register worker event loop 
+         * */
+        std::unique_ptr<std::thread> worker_assist;
+        /* item accept queue */
+        ItemQueue item_aq;
+
+        int id;
         int notify_receive_fd;
+
+        /* epoll */
+        int epoll_fd = 0;
+        struct epoll_event events[Max_conn];
+        struct epoll_event ev;
 };
 
 }; /* hodis */
