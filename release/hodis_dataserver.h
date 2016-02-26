@@ -46,7 +46,10 @@ class dataserver{
     public:
         using ParaMap = std::map<std::string, std::string>;
         using WorkerThreadGroup = std::vector<std::unique_ptr<hodis::workthread>>;
-        using WorkerItemAQ = std::unique_ptr<std::vector<std::shared_ptr<std::list<Item>>>>;
+        using WorkerItemAQ = std::unique_ptr<std::vector<std::shared_ptr<
+            std::pair<std::list<Item>, std::list<Item>>>>>;
+        using WorkerAQCondition = std::unique_ptr<std::vector<std::shared_ptr<
+            std::atomic<bool>>>>;
         using WorkerEvent = std::vector<uint64_t>;
         using WorkerEventFd = std::vector<int>;
 
@@ -77,6 +80,8 @@ class dataserver{
         WorkerEventFd eventfds;
         /* worker thread accept connection item queue */
         WorkerItemAQ worker_item_aq;
+        /* false insert first queue, true insert second queue */
+        WorkerAQCondition worker_item_aq_condition;
         /* distrubute event to worker thread by counter */
         std::atomic<uint_fast64_t> counter;
 

@@ -12,10 +12,11 @@
 namespace hodis{
 
 workthread::
-workthread(int read_fd, int _id, ItemQueue _item_aq){
+workthread(int read_fd, int _id, ItemQueue _item_aq, ItemQueueCondition _item_aq_condition){
     notify_receive_fd = read_fd;
     id = _id;
     item_aq = _item_aq;
+    item_aq_condition = _item_aq_condition;
 
     worker_init();
     worker = std::make_unique<std::thread>(&workthread::run, std::ref(*this));
@@ -43,9 +44,7 @@ run(){
             if(events[i].data.fd == notify_receive_fd){
                 std::cout << "主线程事件" << std::endl;
                 std::cout << "id:" << id << std::endl;
-                uint64_t u;
-                read(notify_receive_fd, &u, sizeof(uint64_t));
-                printf("event:%ld\n", u);
+                handle_register_event();
             }
             else if(events[i].events & EPOLLIN){
                 std::cout << "read events" << std::endl;
@@ -78,6 +77,45 @@ worker_init(){
     }
 
     return ret;
+}
+
+bool
+workthread::
+handle_register_event(){
+    uint64_t u;
+    struct epoll_event ev;
+    read(notify_receive_fd, &u, sizeof(uint64_t));
+    printf("event:%ld\n", u);
+    
+    /* To remove the connection from the connection queue
+     * and register event
+     * false, second
+     * true,  first */
+    std::list<Item>::iterator begin;
+    std::list<Item>::iterator end;
+    std::list<Item> &aq = item_aq->first;
+    if(*item_aq_condition == true){
+        std::cout << "read second queue" << std::endl;
+        begin = item_aq->second.begin();
+        end = item_aq->second.end();
+        aq = item_aq->second;
+    }else{
+        std::cout << "read first queue" << std::endl;
+        begin = item_aq->first.begin();
+        end = item_aq->second.end();
+    }
+    for(int i = 0; begin != end; ++begin,++i){
+        ev.data.fd = begin->fd; 
+        ev.events = EPOLLIN | EPOLLET;
+        if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, begin->fd, &ev) == -1){
+            fprintf(stderr, "epoll_ctl() error..\n");
+            return false;   
+        }else{
+        }
+        begin = aq.erase(begin);
+    }
+
+    return true;
 }
 
 };

@@ -43,10 +43,12 @@ master_init(std::map<std::string, std::string> &para){
             strtof(para.at("slab_incre").c_str(), nullptr),
             strtoull(para.at("memory_size").c_str(), nullptr, 10)*1024*1024*1024
             );
-    worker_item_aq = std::make_unique<std::vector<std::shared_ptr<std::list<Item>>>>(thread_num);
+    worker_item_aq = std::make_unique<std::vector<std::shared_ptr<std::pair<std::list<Item>, std::list<Item>>>>>(thread_num);
+    worker_item_aq_condition = std::make_unique<std::vector<std::shared_ptr<std::atomic<bool>>>>(thread_num);
     /* worker thread accept connection item queue init */
     for(int i = 0; i < thread_num; ++i){
-        (*worker_item_aq)[i] = std::make_shared<std::list<Item>>();
+        (*worker_item_aq)[i] = std::make_shared<std::pair<std::list<Item>, std::list<Item>>>();
+        (*worker_item_aq_condition)[i] = std::make_shared<std::atomic<bool>>(false);
     }
 }
 
@@ -187,7 +189,16 @@ register_worker(int fd){
     
     ++counter;
     item.fd = fd;
-    (*worker_item_aq)[index]->push_back(item);
+    /* false insert first queue
+     * true insert second queue */
+    std::cout << "join... fd:" << item.fd << std::endl;
+    if(*(*worker_item_aq_condition)[index] == false){
+        std::cout << "join first queue" << std::endl;
+        ((*worker_item_aq)[index]->first).push_back(item);
+    }else{
+        ((*worker_item_aq)[index]->second).push_back(item);
+        std::cout << "join second queue" << std::endl;
+    }
     ++event[index];
     if(size != write(eventfds[index], &event[index], size)){
         fprintf(stderr, "write() error\n");
@@ -214,7 +225,8 @@ worker_init(){
         }
         eventfds.push_back(fd);
         event.push_back(ev);
-        auto one_worker = std::make_unique<hodis::workthread>(fd, i, (*worker_item_aq)[i]);
+        auto one_worker = std::make_unique<hodis::workthread>(
+                fd, i, (*worker_item_aq)[i], (*worker_item_aq_condition)[i]);
         work_thread_group.push_back(std::move(one_worker));
     }
 }
