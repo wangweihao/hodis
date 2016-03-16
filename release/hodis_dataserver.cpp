@@ -41,7 +41,8 @@ master_init(std::map<std::string, std::string> &para){
             strtoull(para.at("slab_num").c_str(), nullptr, 10),
             strtoull(para.at("slab_init").c_str(), nullptr, 10),
             strtof(para.at("slab_incre").c_str(), nullptr),
-            strtoull(para.at("memory_size").c_str(), nullptr, 10)*1024*1024*1024
+            strtoull(para.at("memory_size").c_str(), nullptr, 10)*1024*1024*1024,
+            thread_num
             );
     worker_item_aq = std::make_unique<std::vector<std::shared_ptr<std::pair<std::list<Item>, std::list<Item>>>>>(thread_num);
     worker_item_aq_condition = std::make_unique<std::vector<std::shared_ptr<std::atomic<bool>>>>(thread_num);
@@ -55,6 +56,8 @@ master_init(std::map<std::string, std::string> &para){
 void
 dataserver::
 run(){
+    uint32_t revents;
+
     while(1){
         int nfds = epoll_wait(epoll_fd, events, Max_conn, -1);
         if(nfds == -1){
@@ -63,6 +66,12 @@ run(){
         }
 
         for(int i = 0; i < nfds; ++i){
+            revents = events[i].events;
+
+            if(revents & (EPOLLERR | EPOLLHUP)){
+                std::cout << "收到 RST 报文。可能还有数据未读取" << std::endl;
+            }
+
             if(events[i].data.fd == listen_fd){
                 std::cout << "加入连接" << std::endl;
                 int con_fd = accept_connect();

@@ -56,7 +56,7 @@ std::shared_ptr<item>
 slab::alloc_item(){
     //std::cout << "free list size:" << freeitem.size() << std::endl;
     //std::cout << "alloc list size:" << allocitem.size() << std::endl;
-    std::lock_guard<std::mutex> locker(mutex);
+    //std::lock_guard<std::mutex> locker(mutex);
     if(!freeitem.empty()){
         auto item = *(--freeitem.end());
         freeitem.pop_back();
@@ -72,7 +72,7 @@ slab::alloc_item(){
          * garbage collection recover expire time item 
          * */
         //std::cout << "------------------gc-------------------" << std::endl;
-        gc_crawler();
+        //gc_crawler();
         if(!freeitem.empty()){
             auto item = *(--freeitem.end());
             freeitem.pop_back();
@@ -142,5 +142,17 @@ slab::see(){
     }
 }
 
+bool 
+slab::trylock() {
+    if(mutex.try_lock() == false) {
+        return false;
+    }
+    return true;
+}
+
+void
+slab::unlock() {
+    mutex.unlock();
+}
 
 };  /* hodis */

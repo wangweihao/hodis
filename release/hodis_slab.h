@@ -22,16 +22,21 @@ class item;
 
 class slab{
     public:
+        using ItemList = std::list<std::shared_ptr<item>>;
+        using Item = std::shared_ptr<item>;
+
         slab(uint64_t _slab_size, uint64_t _slab_init, uint64_t _id);
         ~slab();
 
         slab(const slab&) = delete;
         
-        auto alloc_item() -> std::shared_ptr<item>;
-        auto free_item(const std::shared_ptr<item> &fitem)  -> void;
+        auto alloc_item() -> Item;
+        auto free_item(const Item &fitem)  -> void;
         auto gc_crawler() -> void;
         auto see() -> void;
         auto get_item_size() -> uint64_t;
+        auto trylock() -> bool;
+        auto unlock() -> void;
 
     private:
         /* one slab size */
@@ -47,13 +52,13 @@ class slab{
         /* slab id */
         uint64_t id;
         /* this slab free item */
-        std::list<std::shared_ptr<item>> freeitem;
+        ItemList freeitem;
         /* this slab alloc item 
          * use LRU when the memory is not enough */
-        std::list<std::shared_ptr<item>> allocitem;
+        ItemList allocitem;
         /* slab start */
         char *start;
-        /* mutex */
+        /* mutex -> line mutex */
         std::mutex mutex;
 
 };

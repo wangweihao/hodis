@@ -20,7 +20,13 @@ namespace hodis{
 
 class mem_pool{
     public:
-        mem_pool(uint64_t _slab_size, uint64_t _slab_num, uint64_t _slab_init, float _slab_incre, uint64_t _memory_size);
+        using SlabVector = std::vector<std::list<std::unique_ptr<slab>>>;
+        using SlabSearch = std::vector<uint64_t>;
+        
+        
+        
+        mem_pool(uint64_t _slab_size, uint64_t _slab_num, uint64_t _slab_init, 
+                float _slab_incre, uint64_t _memory_size, uint64_t _thread_number);
         ~mem_pool();
 
         mem_pool(const mem_pool&) = delete;
@@ -35,10 +41,10 @@ class mem_pool{
 
     private:
         /* mem_pool manager all slab */
-        std::vector<std::list<std::unique_ptr<slab>>> slabv;
+        SlabVector slabv;
 
         /* storage item size and index */
-        std::vector<uint64_t> search_slab;
+        SlabSearch search_slab;
         /* memory pool attribute */
         uint64_t slab_size;   
         uint64_t slab_num;

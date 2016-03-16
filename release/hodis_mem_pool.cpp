@@ -8,14 +8,16 @@
 
 
 #include "hodis_mem_pool.h"
+#include "hodis_item.h"
+
 
 namespace hodis{
 
 mem_pool::
-mem_pool(uint64_t _slab_size, uint64_t _slab_num, uint64_t _slab_init, float _slab_incre, uint64_t _memory_size):
+mem_pool(uint64_t _slab_size, uint64_t _slab_num, uint64_t _slab_init, float _slab_incre, uint64_t _memory_size, uint64_t _thread_number):
     slab_size(_slab_size), slab_num(_slab_num), slab_init(_slab_init), slab_incre(_slab_incre), memory_size(_memory_size)
 {
-    uint64_t item_size = slab_init;
+    uint64_t item_size = slab_init + sizeof(hodis::item);
     uint64_t all_alloc_mem = 0;
     for(int i = 0; i < slab_num; ++i){
         item_size = (uint64_t)slab_init * pow(slab_incre, i);
@@ -27,15 +29,17 @@ mem_pool(uint64_t _slab_size, uint64_t _slab_num, uint64_t _slab_init, float _sl
             fprintf(stderr, "Error: Beyond the memory limit\n");
             exit(1);
         } 
-        std::unique_ptr<slab> one_slab = std::make_unique<slab>(slab_size, item_size, i);
         /* 
          * a speci size slab list 
          * */
         std::list<std::unique_ptr<slab>> slab_list;
+        for(int i = 0; i < _thread_number; ++i){
+            std::unique_ptr<slab> one_slab = std::make_unique<slab>(slab_size, item_size, i);
+            slab_list.push_back(std::move(one_slab));
+        }
         /* 
          * slab adjacent table 
          * */
-        slab_list.push_back(std::move(one_slab));
         slabv.push_back(std::move(slab_list));    
         /* 
          * search_slab used appropriate slab
@@ -56,6 +60,7 @@ mem_pool::alloc_item(uint64_t size){
     /* 
      * search appropriate item size in slab 
      * */
+    //std::cout << "alloc_item" << std::endl;
     auto end = std::lower_bound(search_slab.begin(), search_slab.end(), size);
     if(end == search_slab.end()){
         /* 
@@ -74,12 +79,21 @@ mem_pool::alloc_item(uint64_t size){
         /* 
          * this size slab list to search item 
          * */
+
+        /* 
+         * Slab quantity is greater than the number of
+         * threads, success is sure to get lock allocation
+         * */
         for(auto &slabs : slabv[index]){
-            auto one_item = slabs->alloc_item();
-            if(one_item != nullptr){
-                   return one_item;
+            if(slabs->trylock() == true){
+                auto one_item = slabs->alloc_item();
+                slabs->unlock();
+                if(one_item != nullptr){
+                       return one_item;
+                }
             }
         }
+        std::cout << "failed" << std::endl;
         //std::cout << "alloc new slab" << std::endl;
         /* 
          * slab list not item, allocator a new slab 
@@ -109,6 +123,7 @@ mem_pool::free_item(const std::shared_ptr<item>& item){
 
 
 /* 
+ * A background thread for
  * memory pool garbage collection 
  * */
 void

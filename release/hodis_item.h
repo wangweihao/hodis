@@ -28,6 +28,9 @@ namespace hodis{
 
 class item{
     public:
+        using Version = std::atomic<uint_fast64_t>;
+        
+        
         item(char* start);
         ~item();
 
@@ -40,7 +43,7 @@ class item{
 
     private:
         /* version number */
-        std::atomic<uint_fast64_t> version;
+        Version version;
         /* timestamp LRU */
         time_t timestamp;
         /* expire time */

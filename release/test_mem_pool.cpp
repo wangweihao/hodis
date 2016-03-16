@@ -19,17 +19,10 @@ int main(){
     //std::shared_ptr<item> ptr;
     struct timeval start;
     struct timeval end;
-    std::cout << "--------------" << std::endl;
     std::vector<std::shared_ptr<item>> ivec;
     gettimeofday(&start, NULL);
-    for(int i =0; i < 10000; ++i){
-        //pool.alloc_item(105);
-        char *p = (char*)malloc(105);
-        if(p == NULL){
-            printf("..");
-        }
-        std::shared_ptr<item> sp(new (p) item(p));
-        ivec.push_back(std::move(sp));
+    for(int i =0; i < 1000000; ++i){
+        ivec.push_back(std::move(pool.alloc_item(100)));
     }
     gettimeofday(&end, NULL);
     std::cout << "time:" << (end.tv_sec-start.tv_sec)*1000000+(end.tv_usec-start.tv_usec) << std::endl;

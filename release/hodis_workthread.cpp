@@ -47,6 +47,7 @@ run(){
                 handle_register_event();
             }
             else if(events[i].events & EPOLLIN){
+                /* 断开连接也是 events */
                 std::cout << "read events" << std::endl;
             }else if(events[i].events & EPOLLHUP){
                 std::cout << "hup events" << std::endl;
@@ -94,15 +95,30 @@ handle_register_event(){
     std::list<Item>::iterator begin;
     std::list<Item>::iterator end;
     std::list<Item> &aq = item_aq->first;
-    if(*item_aq_condition == true){
+    if(*item_aq_condition == false){
         std::cout << "read second queue" << std::endl;
         begin = item_aq->second.begin();
         end = item_aq->second.end();
-        aq = item_aq->second;
+        /* queue is empty, swap */
+        if(begin == end){
+            std::cout << "交换" << std::endl;
+            begin = item_aq->first.begin();
+            end = item_aq->first.end();
+            aq = item_aq->first;
+        }else{
+            aq = item_aq->second;
+        }
     }else{
         std::cout << "read first queue" << std::endl;
         begin = item_aq->first.begin();
-        end = item_aq->second.end();
+        end = item_aq->first.end();
+        if(begin == end){
+            begin = item_aq->second.begin();
+            end = item_aq->second.end();
+            aq = item_aq->second;
+        }else{
+            aq = item_aq->first;
+        }
     }
     for(int i = 0; begin != end; ++begin,++i){
         ev.data.fd = begin->fd; 
