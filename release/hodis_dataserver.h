@@ -36,6 +36,8 @@
 #include "hodis_mem_pool.h"
 /* worker thread */
 #include "hodis_workthread.h"
+/* lock list */
+#include "hodis_list.h"
 
 #define Max_conn 10000
 #define BackLog  1024
@@ -46,8 +48,8 @@ class dataserver{
     public:
         using ParaMap = std::map<std::string, std::string>;
         using WorkerThreadGroup = std::vector<std::unique_ptr<hodis::workthread>>;
-        using WorkerItemAQ = std::unique_ptr<std::vector<std::shared_ptr<
-            std::pair<std::list<Item>, std::list<Item>>>>>;
+        /* hodis::lockList */
+        using WorkerItemAQ = std::unique_ptr<std::vector<std::shared_ptr<hodis::lockList<Item>>>>;
         using WorkerAQCondition = std::unique_ptr<std::vector<std::shared_ptr<
             std::atomic<bool>>>>;
         using WorkerEvent = std::vector<uint64_t>;

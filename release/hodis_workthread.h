@@ -24,6 +24,8 @@
 #include <list>
 #include <atomic>
 
+#include "hodis_list.h"
+
 #define Max_conn 10000
 
 typedef struct Item{
@@ -35,7 +37,7 @@ namespace hodis{
 
 class workthread{
     public:
-        using ItemQueue = std::shared_ptr<std::pair<std::list<Item>, std::list<Item>>>;
+        using ItemQueue = std::shared_ptr<hodis::lockList<Item>>;
         using ItemQueueCondition = std::shared_ptr<std::atomic<bool>>;
 
         workthread(int read_fd, int _id, ItemQueue _item_aq, ItemQueueCondition _item_aq_condition);

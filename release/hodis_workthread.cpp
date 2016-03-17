@@ -84,51 +84,25 @@ bool
 workthread::
 handle_register_event(){
     uint64_t u;
+    uint16_t accumulator = 0;
     struct epoll_event ev;
     read(notify_receive_fd, &u, sizeof(uint64_t));
     printf("event:%ld\n", u);
     
     /* To remove the connection from the connection queue
-     * and register event
-     * false, second
-     * true,  first */
-    std::list<Item>::iterator begin;
-    std::list<Item>::iterator end;
-    std::list<Item> &aq = item_aq->first;
-    if(*item_aq_condition == false){
-        std::cout << "read second queue" << std::endl;
-        begin = item_aq->second.begin();
-        end = item_aq->second.end();
-        /* queue is empty, swap */
-        if(begin == end){
-            std::cout << "交换" << std::endl;
-            begin = item_aq->first.begin();
-            end = item_aq->first.end();
-            aq = item_aq->first;
-        }else{
-            aq = item_aq->second;
+     * and register event 
+     * The default try 5 times */
+    while(!item_aq->empty()) {
+        if(++accumulator == 5) {
+            break;
         }
-    }else{
-        std::cout << "read first queue" << std::endl;
-        begin = item_aq->first.begin();
-        end = item_aq->first.end();
-        if(begin == end){
-            begin = item_aq->second.begin();
-            end = item_aq->second.end();
-            aq = item_aq->second;
-        }else{
-            aq = item_aq->first;
-        }
-    }
-    for(int i = 0; begin != end; ++begin,++i){
-        ev.data.fd = begin->fd; 
+        auto &t = item_aq->getConnect();
+        ev.data.fd = t.fd;
         ev.events = EPOLLIN | EPOLLET;
-        if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, begin->fd, &ev) == -1){
-            fprintf(stderr, "epoll_ctl() error..\n");
-            return false;   
-        }else{
+        if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, t.fd, &ev) == -1) {
+            fprintf(stderr, "epoll_ctl() error\n");
+            return false;
         }
-        begin = aq.erase(begin);
     }
 
     return true;
