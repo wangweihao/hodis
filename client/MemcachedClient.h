@@ -26,6 +26,7 @@ namespace Memcached {
 class MemcachedClient {
     public:
         /* std::pair<ip, port> */
+        using Node = std::pair<std::string, uint16_t>;
         using VirtualNode = std::pair<std::string, uint16_t>;
         using ServerList = std::initializer_list<VirtualNode>;
         
@@ -36,10 +37,17 @@ class MemcachedClient {
         /* {{"127.0.0.1", 10000}, {"192.168.0.1", 10000}} */
         bool appendServerList(ServerList &&serverList);
 
+        bool set(std::string key, std::string value);
+
     private:
-        std::map<long, VirtualNode> nodes;
+        int createConnect(const char *ip, int port);
+
+    private:
         /* virtual node number */
         uint16_t virtualNodeNum;
+        /* server socket */
+        std::map<std::string, int> connects; 
+        std::map<long, VirtualNode> nodes;
 };
 
 }  /* memcached */
