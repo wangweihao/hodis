@@ -43,7 +43,7 @@ class MemcachedClient {
         std::string Append(std::string &key, std::string &value, uint64_t time, int flags);
         std::string Prepend(std::string &key, std::string &value, uint64_t time, int flags);
         std::string Cas(std::string &key, std::string &value, uint64_t time, int flags, uint64_t version);
-        std::string Get(std::initializer_list<std::string>&key);
+        std::string Get(std::string &key);
         std::string Delete(std::string &key);
         std::string Version();
         std::string Quit();
