@@ -133,7 +133,7 @@ MemcachedClient::Set(std::string &key, std::string &value, uint64_t time, int fl
     newKey.append(n);
     newKey.append(" ");
     bzero(n, 64);
-    sprintf(n, "%d", value.length());
+    sprintf(n, "%lu", value.length());
     newKey.append(n);
     newKey.append("\r\n");
     value.append("\r\n");
@@ -180,7 +180,7 @@ MemcachedClient::Add(std::string &key, std::string &value, uint64_t time, int fl
     newKey.append(n);
     newKey.append(" ");
     bzero(n, 64);
-    sprintf(n, "%d", value.length());
+    sprintf(n, "%lu", value.length());
     newKey.append(n);
     newKey.append("\r\n");
     value.append("\r\n");
@@ -227,7 +227,7 @@ MemcachedClient::Replace(std::string &key, std::string &value, uint64_t time, in
     newKey.append(n);
     newKey.append(" ");
     bzero(n, 64);
-    sprintf(n, "%d", value.length());
+    sprintf(n, "%lu", value.length());
     newKey.append(n);
     newKey.append("\r\n");
     value.append("\r\n");
@@ -275,7 +275,7 @@ MemcachedClient::Append(std::string &key, std::string &value, uint64_t time, int
     newKey.append(n);
     newKey.append(" ");
     bzero(n, 64);
-    sprintf(n, "%d", value.length());
+    sprintf(n, "%lu", value.length());
     newKey.append(n);
     newKey.append("\r\n");
     value.append("\r\n");
@@ -322,7 +322,7 @@ MemcachedClient::Prepend(std::string &key, std::string &value, uint64_t time, in
     newKey.append(n);
     newKey.append(" ");
     bzero(n, 64);
-    sprintf(n, "%d", value.length());
+    sprintf(n, "%lu", value.length());
     newKey.append(n);
     newKey.append("\r\n");
     value.append("\r\n");
@@ -369,7 +369,7 @@ MemcachedClient::Cas(std::string &key, std::string &value, uint64_t time, int fl
     newKey.append(n);
     newKey.append(" ");
     bzero(n, 64);
-    sprintf(n, "%d", value.length());
+    sprintf(n, "%lu", value.length());
     newKey.append(n);
     newKey.append(" ");
     bzero(n, 64);
@@ -393,6 +393,7 @@ std::string
 MemcachedClient::Get(std::string &key) {
     std::hash<std::string> Hash;
     char buffer[256];
+    bzero(buffer, 256);
     //获得虚拟节点
     //hash = HASH(key);
     //需要找到一个hash函数来hash key
@@ -422,6 +423,7 @@ std::string
 MemcachedClient::Delete(std::string &key) {
     std::hash<std::string> Hash;
     char buffer[256];
+    bzero(buffer, 256);
     //获得虚拟节点
     //hash = HASH(key);
     //需要找到一个hash函数来hash key
@@ -451,6 +453,7 @@ std::string
 MemcachedClient::Version() {
     std::hash<std::string> Hash;
     char buffer[256];
+    bzero(buffer, 256);
     //获得虚拟节点
     //hash = HASH(key);
     //需要找到一个hash函数来hash key
@@ -479,6 +482,7 @@ std::string
 MemcachedClient::Quit() {
     std::hash<std::string> Hash;
     char buffer[256];
+    bzero(buffer, 256);
     //获得虚拟节点
     //hash = HASH(key);
     //需要找到一个hash函数来hash key
