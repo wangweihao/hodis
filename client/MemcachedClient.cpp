@@ -14,16 +14,15 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include "md5.h"
+
+#define HASH KETAMA_HASH
 
 namespace Memcached {
     
-MemcachedClient::MemcachedClient() {
-    
-}
+MemcachedClient::MemcachedClient() {}
 
-MemcachedClient::~MemcachedClient() {
-
-}
+MemcachedClient::~MemcachedClient() {}
 
 bool
 MemcachedClient::setVirtualNodeNum(uint16_t _virtualNodeNum) {
@@ -39,21 +38,40 @@ MemcachedClient::setVirtualNodeNum(uint16_t _virtualNodeNum) {
 bool
 MemcachedClient::appendServerList(ServerList &&serverList) {
     for (const Node &one : serverList) {
+        char port[64];
+        bzero(port, 64);
+        sprintf(port, "%d", one.second);
         int socket = createConnect(one.first.c_str(), one.second);
-        for (int i = 0; i < virtualNodeNum; ++i) {
+        for (int i = 0; i < virtualNodeNum/4; ++i) {
+            //组装获取虚拟节点 ip
             char n[64];
             bzero(n, 64);
             sprintf(n, "%d", i);
             auto node_ip = one.first;
+            node_ip.append(":");
+            node_ip.append(port);
             node_ip.append("-");
             node_ip.append(n);
-            //std::cout << "node_ip:" << node_ip << std::endl;
-            connects.insert({node_ip, socket});
-            nodes.insert({KETAMA_HASH(node_ip.c_str(), i), one});
+            std::cout << "node_ip:" << node_ip << std::endl;
+            //获取对应虚拟节点的 MD5
+            char buf[33] = {'\0'};
+            MyMD5(node_ip.c_str(), buf);
+            //获取虚拟节点的 hash 值
+            for (int h = 0; h < 4; ++h) {
+                long k = HASH(buf, h);
+                //存储到 ip->socket map
+                connects.insert({node_ip, socket});
+                //存储到 hashValue->VirtualNode map
+                auto ret = nodes.insert({k, node_ip});
+                if (ret.second == false) {
+                    std::cout << "insert false" << std::endl;
+                }
+            }
         }
     }
+    std::cout << "size:" << nodes.size() << std::endl;
     for (auto &node : nodes) {
-        std::cout << "Hash:" << node.first << " ip:" << node.second.first << " port:" << node.second.second << std::endl;
+        std::cout << "Hash:" << node.first << " ip:" << node.second << std::endl;
     }
     return true;
 }
@@ -81,13 +99,48 @@ MemcachedClient::createConnect(const char *ip, int port) {
     return sockfd;
 }
 
-bool
-MemcachedClient::set(std::string key, std::string value) {
-    /*
-     * auto &one = nodes.upper_bound(hash(key))
-     * int fd = connects[one.frist];
-     * send(fd, "hello world", sizeof());
-     * */
+std::string
+MemcachedClient::Set(std::string &key, std::string &value, uint64_t time, int flags) {
+    char n[64];
+    char buffer[256];
+    bzero(n, 64);
+    bzero(buffer, 64);
+    //获得虚拟节点
+    auto one = nodes.upper_bound(100000);
+    //如果没找到，则默认归入第一个虚拟节点
+    if (one == nodes.end()) {
+        std::cout << "not found" << std::endl;
+        one = nodes.begin();
+    }
+    //获得节点对应的socket
+    int fd = connects[one->second];
+    std::cout << "fd:" << fd << std::endl;
+    std::string newKey = "set ";
+    newKey.append(key);
+    newKey.append(" ");
+    bzero(n, 64);
+    sprintf(n, "%lu", time);
+    newKey.append(n);
+    newKey.append(" ");
+    bzero(n, 64);
+    sprintf(n, "%d", flags);
+    newKey.append(n);
+    newKey.append(" ");
+    bzero(n, 64);
+    sprintf(n, "%d", value.length());
+    newKey.append(n);
+    newKey.append("\r\n");
+    value.append("\r\n");
+    
+    //发送给服务器
+    send(fd, newKey.c_str(), newKey.length(), 0);
+    send(fd, value.c_str(), value.length(), 0);
+
+    recv(fd, buffer, 256, 0);
+    printf("buffer:%s\n", buffer);
+    std::string ret(buffer);
+
+    return ret;
 }
 
 };

@@ -37,7 +37,17 @@ class MemcachedClient {
         /* {{"127.0.0.1", 10000}, {"192.168.0.1", 10000}} */
         bool appendServerList(ServerList &&serverList);
 
-        bool set(std::string key, std::string value);
+        std::string Set(std::string &key, std::string &value, uint64_t time, int flags);
+        std::string Add(std::string &key, std::string &value, uint64_t time, int flags);
+        std::string Replace(std::string &key, std::string &value, uint64_t time, int flags);
+        std::string Append(std::string &key, std::string &value, uint64_t time, int flags);
+        std::string Prepend(std::string &key, std::string &value, uint64_t time, int flags);
+        std::string Cas(std::string &key, std::string &value, uint64_t time, int flags, uint64_t version);
+        std::string Get(std::initializer_list<std::string>&key);
+        std::string Delete(std::string &key);
+        std::string Version();
+        std::string Quit();
+
 
     private:
         int createConnect(const char *ip, int port);
@@ -47,7 +57,7 @@ class MemcachedClient {
         uint16_t virtualNodeNum;
         /* server socket */
         std::map<std::string, int> connects; 
-        std::map<long, VirtualNode> nodes;
+        std::map<long, std::string> nodes;
 };
 
 }  /* memcached */
