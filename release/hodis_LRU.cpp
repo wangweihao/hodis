@@ -43,7 +43,7 @@ LRUCache::set(const std::string &key, const std::string &value){
     }
 }
 
-LRUCache::Iter 
+std::string 
 LRUCache::get(const std::string &key) {
     std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
@@ -57,11 +57,18 @@ LRUCache::get(const std::string &key) {
         lruCache->insert(lruCache->begin(), std::move(item));
         (*hashMap)[key] = lruCache->begin();
 
-        return (*hashMap)[key];   
+        return (*(*hashMap)[key]).second;   
     }else {
-        return lruCache->end();
+        return "";
     }
 }
 
+void
+LRUCache::foreach() {
+    for (auto &item : *lruCache) {
+        std::cout << "key:" << item.first << " value:" << item.second << std::endl;
+    }
+    std::cout << std::endl;
+}
 
 } /* hodis */

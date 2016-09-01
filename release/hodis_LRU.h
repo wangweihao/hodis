@@ -30,7 +30,8 @@ class LRUCache {
 
     public:
         void set(const std::string &key, const std::string &value);       
-        Iter get(const std::string &key);
+        std::string get(const std::string &key);
+        void foreach();
 
     private:
         /* LRUCache List */
